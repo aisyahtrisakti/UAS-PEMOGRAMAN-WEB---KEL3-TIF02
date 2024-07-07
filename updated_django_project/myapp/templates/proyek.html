@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyek</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e8f0fe;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            position: fixed;
+            background-color: #2c3e50;
+            color: white;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 15px;
+            text-decoration: none;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .sidebar a:hover {
+            background-color: #34495e;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        .header {
+            background-color: #8e44ad;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-bar .view-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .search-bar .view-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background-color: #8e44ad;
+            color: white;
+            font-size: 14px;
+        }
+        .table-container {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #8e44ad;
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .action-buttons button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .action-buttons .update {
+            background-color: #28a745;
+            color: white;
+        }
+        .action-buttons .delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .print-button, .new-project-button {
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background-color: #8e44ad;
+            color: white;
+            font-size: 14px;
+        }
+        .checkbox {
+            text-align: center;
+        }
+        .select-project {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'proyek' %}">Proyek</a>
+        <a href="{% url 'official' %}">Official</a>
+        <a href="{% url 'message' %}">Message</a>
+        <a href="#">Settings</a>
+    </div>
+    <div class="content">
+        <div class="header">
+            <h1>Proyek</h1>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Cari berdasarkan Nama proyek, Supervisor, dll...">
+            <div class="view-buttons">
+                <button class="print-button" id="print">Print</button>
+                <button class="new-project-button" onclick="location.href='{% url 'project_profile' %}'">New Proyek</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="projects-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Nama Proyek</th>
+                        <th>Tujuan</th>
+                        <th>Tanggal Mulai</th>
+                        <th>Tanggal Selesai</th>
+                        <th>Supervisor</th>
+                        <th>Status</th>
+                        <th>Catatan Kegiatan</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamic rows will be added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            const tableBody = document.querySelector('#projects-table tbody');
+            const searchInput = document.getElementById('search');
+            const printButton = document.getElementById('print');
+            let showCheckboxes = false;
+
+            function renderTable(filteredProjects) {
+                tableBody.innerHTML = '';
+                filteredProjects.forEach((project, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="checkbox"><input type="checkbox" class="select-project" data-index="${index}" ${showCheckboxes ? 'style="display: block;"' : ''}></td>
+                        <td>${project.name}</td>
+                        <td>${project.goal}</td>
+                        <td>${project.startDate}</td>
+                        <td>${project.endDate}</td>
+                        <td>${project.supervisor}</td>
+                        <td>${project.status}</td>
+                        <td>${project.finalNotes || '-'}</td>
+                        <td class="action-buttons">
+                            <button class="update" data-index="${index}">Update</button>
+                            <button class="delete" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            tableBody.addEventListener('click', function(e) {
+                if (e.target.classList.contains('update')) {
+                    const index = e.target.dataset.index;
+                    updateProject(index);
+                } else if (e.target.classList.contains('delete')) {
+                    const index = e.target.dataset.index;
+                    deleteProject(index);
+                }
+            });
+
+            function updateProject(index) {
+                const project = projects[index];
+                localStorage.setItem('editProjectIndex', index);
+                localStorage.setItem('editProject', JSON.stringify(project));
+                window.location.href = '{% url 'project_profile' %}';
+            }
+
+            function deleteProject(index) {
+                if (confirm('Are you sure you want to delete this project?')) {
+                    projects.splice(index, 1);
+                    localStorage.setItem('projects', JSON.stringify(projects));
+                    renderTable(projects);
+                }
+            }
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredProjects = projects.filter(project =>
+                    project.name.toLowerCase().includes(searchTerm) ||
+                    project.supervisor.toLowerCase().includes(searchTerm)
+                );
+                renderTable(filteredProjects);
+            });
+
+            printButton.addEventListener('click', function() {
+                if (!showCheckboxes) {
+                    showCheckboxes = true;
+                    renderTable(projects);
+                } else {
+                    const selectedProjects = projects.filter((project, index) => {
+                        const checkbox = document.querySelector(`.select-project[data-index="${index}"]`);
+                        return checkbox.checked;
+                    });
+                    if (selectedProjects.length > 0) {
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
+                        doc.text('Daftar Proyek', 10, 10);
+                        const columns = ["Nama Proyek", "Tujuan", "Tanggal Mulai", "Tanggal Selesai", "Supervisor", "Status", "Catatan Kegiatan"];
+                        const rows = selectedProjects.map(project => [
+                            project.name, project.goal, project.startDate, project.endDate, project.supervisor, project.status, project.finalNotes || '-'
+                        ]);
+                        doc.autoTable(columns, rows);
+                        doc.save('daftar_proyek.pdf');
+                        showCheckboxes = false;
+                        renderTable(projects);
+                    } else {
+                        alert('Pilih proyek yang ingin di print.');
+                    }
+                }
+            });
+
+            renderTable(projects);
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e8f0fe;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            position: fixed;
+            background-color: #2c3e50;
+            color: white;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 15px;
+            text-decoration: none;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .sidebar a:hover {
+            background-color: #34495e;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        .header {
+            background-color: #8e44ad;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-bar .view-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .search-bar .view-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background-color: #8e44ad;
+            color: white;
+            font-size: 14px;
+        }
+        .gantt-chart {
+            position: relative;
+            width: 100%;
+            height: auto;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .gantt-bar {
+            position: absolute;
+            height: 40px;
+            border-radius: 20px;
+            color: #fff;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        .gantt-bar .status-icon {
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background-color: #fff;
+            color: #333;
+        }
+        .berlangsung { background-color: green; }
+        .gagal { background-color: red; }
+        .selesai { background-color: blue; }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .legend div {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .legend div span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 50%;
+        }
+        .berlangsung-color { background-color: green; }
+        .gagal-color { background-color: red; }
+        .selesai-color { background-color: blue; }
+        .x-axis {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            box-sizing: border-box;
+            margin-top: 40px; /* Adjust margin top for spacing */
+        }
+        .x-axis div {
+            width: calc(100% / 12);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'proyek' %}">Proyek</a>
+        <a href="{% url 'official' %}">Official</a>
+        <a href="{% url 'message' %}">Message</a>
+        <a href="{% url 'member_profile' %}">Member Profile</a>
+        <a href="{% url 'project_profile' %}">Project Profile</a>
+        <a href="#">Settings</a>
+    </div>
+    <div class="content">
+        <div class="header">
+            <h1>Dashboard</h1>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Cari Task...">
+            <div class="view-buttons">
+                <button id="month-view">Month</button>
+                <button id="year-view">Year</button>
+            </div>
+        </div>
+        <div class="gantt-chart" id="gantt-chart"></div>
+        <div class="legend">
+            <div><span class="berlangsung-color"></span> Berlangsung</div>
+            <div><span class="gagal-color"></span> Gagal</div>
+            <div><span class="selesai-color"></span> Selesai</div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            const ganttChart = document.getElementById('gantt-chart');
+            const searchInput = document.getElementById('search');
+            const monthViewButton = document.getElementById('month-view');
+            const yearViewButton = document.getElementById('year-view');
+            let currentView = 'year';
+
+            function renderGanttChart(view) {
+                ganttChart.innerHTML = '';
+                const chartWidth = ganttChart.offsetWidth;
+                const chartStart = new Date(view === 'year' ? '2023-01-01' : '2023-07-01').getTime();
+                const chartEnd = new Date(view === 'year' ? '2024-12-31' : '2023-12-31').getTime();
+                const chartDuration = chartEnd - chartStart;
+
+                projects.forEach((project, index) => {
+                    const projectStart = new Date(project.startDate).getTime();
+                    const projectEnd = new Date(project.endDate).getTime();
+                    const projectDuration = projectEnd - projectStart;
+                    const startOffset = ((projectStart - chartStart) / chartDuration) * chartWidth;
+                    const barWidth = (projectDuration / chartDuration) * chartWidth;
+                    const statusClass = getStatusClass(project.status);
+                    const statusIcon = getStatusIcon(project.status);
+
+                    const ganttBar = document.createElement('div');
+                    ganttBar.classList.add('gantt-bar', statusClass);
+                    ganttBar.style.left = `${startOffset}px`;
+                    ganttBar.style.width = `${barWidth}px`;
+                    ganttBar.style.top = `${index * 60 + 20}px`;  // Set the top position based on index with more space
+                    ganttBar.innerHTML = `${project.name} <div class="status-icon">${statusIcon}</div>`;
+
+                    ganttChart.appendChild(ganttBar);
+                });
+
+                // Add x-axis labels for months
+                const xAxis = document.createElement('div');
+                xAxis.classList.add('x-axis');
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                months.forEach(month => {
+                    const monthDiv = document.createElement('div');
+                    monthDiv.textContent = month;
+                    xAxis.appendChild(monthDiv);
+                });
+                ganttChart.appendChild(xAxis);
+            }
+
+            function getStatusClass(status) {
+                switch (status) {
+                    case 'berlangsung':
+                        return 'berlangsung';
+                    case 'gagal':
+                        return 'gagal';
+                    case 'selesai':
+                        return 'selesai';
+                    default:
+                        return '';
+                }
+            }
+
+            function getStatusIcon(status) {
+                switch (status) {
+                    case 'berlangsung':
+                        return '✔';
+                    case 'gagal':
+                        return '✘';
+                    case 'selesai':
+                        return '✓';
+                    default:
+                        return '';
+                }
+            }
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredProjects = projects.filter(project => project.name.toLowerCase().includes(searchTerm));
+                renderGanttChart(currentView, filteredProjects);
+            });
+
+            monthViewButton.addEventListener('click', function() {
+                currentView = 'month';
+                renderGanttChart('month');
+            });
+
+            yearViewButton.addEventListener('click', function() {
+                currentView = 'year';
+                renderGanttChart('year');
+            });
+
+            renderGanttChart(currentView);
+        });
+    </script>
+</body>
+</html>

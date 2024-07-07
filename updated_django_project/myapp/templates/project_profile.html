@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Proyek</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #4A148C;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group .icon {
+            width: 100%;
+            padding: 10px;
+            background-color: #ddd;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .member-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .member-item .member-name {
+            flex: 1;
+            padding: 10px;
+            background-color: #eee;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .member-item .icon {
+            margin-left: 10px;
+        }
+        .member-list {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .member-list select {
+            width: calc(100% - 50px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .add-member-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .add-member-button:hover {
+            background-color: #0056b3;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        Proyek Manajemen
+    </div>
+    <div class="container">
+        <h1>Profil Proyek</h1>
+        <form id="project-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="project-name">Nama Proyek</label>
+                <input type="text" id="project-name">
+            </div>
+            <div class="form-group">
+                <label for="project-goal">Tujuan</label>
+                <input type="text" id="project-goal">
+            </div>
+            <div class="form-group">
+                <label for="start-date">Tanggal Mulai</label>
+                <input type="date" id="start-date">
+            </div>
+            <div class="form-group">
+                <label for="end-date">Tanggal Selesai</label>
+                <input type="date" id="end-date">
+            </div>
+            <div class="form-group">
+                <label for="supervisor">Supervisor</label>
+                <input type="text" id="supervisor">
+            </div>
+            <div class="form-group member-list">
+                <label for="members">Anggota</label>
+                <select id="members-list">
+                    <!-- Options will be added dynamically -->
+                </select>
+                <button type="button" class="add-member-button" onclick="saveFormData(); location.href='{% url 'member_profile' %}';">Tambah Anggota Baru</button>
+            </div>
+            <div id="selected-members" class="form-group">
+                <!-- Selected members will be displayed here -->
+            </div>
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status">
+                    <option value="">Pilih Status</option>
+                    <option value="berlangsung">Berlangsung</option>
+                    <option value="gagal">Gagal</option>
+                    <option value="selesai">Selesai</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="final-notes">Catatan Akhir</label>
+                <input type="file" id="final-notes">
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editProjectIndex = localStorage.getItem('editProjectIndex');
+            const editProject = JSON.parse(localStorage.getItem('editProject'));
+            const members = JSON.parse(localStorage.getItem('members')) || [];
+            const formData = JSON.parse(localStorage.getItem('formData'));
+            const registeredMembers = JSON.parse(localStorage.getItem('staff')) || [];
+            const membersList = document.getElementById('members-list');
+            const selectedMembersContainer = document.getElementById('selected-members');
+
+            function populateMembersList() {
+                registeredMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.name;
+                    option.textContent = member.name;
+                    membersList.appendChild(option);
+                });
+            }
+
+            function addSelectedMember(name) {
+                const memberItem = document.createElement('div');
+                memberItem.className = 'member-item';
+                memberItem.innerHTML = `<div class="member-name">${name}</div>`;
+                selectedMembersContainer.appendChild(memberItem);
+            }
+
+            populateMembersList();
+
+            if (formData) {
+                document.getElementById('project-name').value = formData.name;
+                document.getElementById('project-goal').value = formData.goal;
+                document.getElementById('start-date').value = formData.startDate;
+                document.getElementById('end-date').value = formData.endDate;
+                document.getElementById('supervisor').value = formData.supervisor;
+                document.getElementById('status').value = formData.status;
+                // Handle uploaded file
+                if (formData.finalNotes) {
+                    document.getElementById('final-notes').setAttribute('data-filename', formData.finalNotes);
+                }
+            }
+
+            if (editProject) {
+                document.getElementById('project-name').value = editProject.name;
+                document.getElementById('project-goal').value = editProject.goal;
+                document.getElementById('start-date').value = editProject.startDate;
+                document.getElementById('end-date').value = editProject.endDate;
+                document.getElementById('supervisor').value = editProject.supervisor;
+                document.getElementById('status').value = editProject.status;
+                // Handle uploaded file
+                if (editProject.finalNotes) {
+                    document.getElementById('final-notes').setAttribute('data-filename', editProject.finalNotes);
+                }
+
+                editProject.members.forEach(member => {
+                    addSelectedMember(member);
+                });
+            }
+
+            members.forEach(member => {
+                addSelectedMember(member);
+            });
+
+            membersList.addEventListener('change', function() {
+                const selectedOption = membersList.options[membersList.selectedIndex];
+                addSelectedMember(selectedOption.value);
+                membersList.selectedIndex = -1;
+            });
+
+            document.getElementById('project-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const selectedMembers = Array.from(selectedMembersContainer.children).map(item => item.textContent);
+                const project = {
+                    name: document.getElementById('project-name').value,
+                    goal: document.getElementById('project-goal').value,
+                    startDate: document.getElementById('start-date').value,
+                    endDate: document.getElementById('end-date').value,
+                    supervisor: document.getElementById('supervisor').value,
+                    status: document.getElementById('status').value,
+                    members: selectedMembers,
+                    finalNotes: document.getElementById('final-notes').files[0] ? document.getElementById('final-notes').files[0].name : document.getElementById('final-notes').getAttribute('data-filename')
+                };
+
+                let projects = JSON.parse(localStorage.getItem('projects')) || [];
+                if (editProjectIndex !== null) {
+                    projects[editProjectIndex] = project;
+                } else {
+                    projects.push(project);
+                }
+                localStorage.setItem('projects', JSON.stringify(projects));
+                localStorage.removeItem('editProjectIndex');
+                localStorage.removeItem('editProject');
+                localStorage.removeItem('members');
+                localStorage.removeItem('formData');
+                window.location.href = '{% url 'proyek' %}';
+            });
+        });
+
+        function saveFormData() {
+            const formData = {
+                name: document.getElementById('project-name').value,
+                goal: document.getElementById('project-goal').value,
+                startDate: document.getElementById('start-date').value,
+                endDate: document.getElementById('end-date').value,
+                supervisor: document.getElementById('supervisor').value,
+                status: document.getElementById('status').value,
+                finalNotes: document.getElementById('final-notes').files[0] ? document.getElementById('final-notes').files[0].name : document.getElementById('final-notes').getAttribute('data-filename')
+            };
+            localStorage.setItem('formData', JSON.stringify(formData));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Anggota</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #4A148C;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group .icon {
+            width: 100%;
+            padding: 10px;
+            background-color: #ddd;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .form-group .icon img {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #photo-upload-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        #photo-upload-popup .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #photo-upload-popup .popup-content button {
+            margin: 10px;
+        }
+        #photo-upload-popup #video,
+        #photo-upload-popup #canvas {
+            display: none;
+        }
+        #photo-upload-popup #video {
+            width: 100%;
+            height: auto;
+        }
+        .photo-preview {
+            display: none;
+            width: 100px;
+            height: 100px;
+            margin-top: 10px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        Profil Anggota
+    </div>
+    <div class="container">
+        <h1>Profil Anggota</h1>
+        <form id="member-form">
+            <div class="form-group">
+                <label for="member-name">Nama</label>
+                <input type="text" id="member-name" value="">
+            </div>
+            <div class="form-group">
+                <label for="birth-date">Tanggal Lahir</label>
+                <input type="date" id="birth-date" value="">
+            </div>
+            <div class="form-group">
+                <label for="address">Alamat</label>
+                <input type="text" id="address" value="">
+            </div>
+            <div class="form-group">
+                <label for="gender">Jenis Kelamin</label>
+                <select id="gender">
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="expertise">Keahlian</label>
+                <input type="text" id="expertise" value="">
+            </div>
+            <div class="form-group">
+                <label for="role">Peran</label>
+                <input type="text" id="role" value="">
+            </div>
+            <div class="form-group">
+                <div class="icon" onclick="showPhotoUploadPopup()" id="photo-icon">
+                    Upload Foto
+                </div>
+                <input type="file" id="file-input" style="display: none;">
+                <input type="hidden" id="photo-data" value="">
+                <img id="photo-preview" class="photo-preview" src="" alt="Preview">
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <div id="photo-upload-popup" class="photo-upload-popup">
+        <div class="popup-content">
+            <p>Upload Foto</p>
+            <button onclick="startVideo()">Ambil Foto</button>
+            <button onclick="browseFile()">Pilih File</button>
+            <button onclick="closePhotoUploadPopup()">Tutup</button>
+            <video id="video" autoplay></video>
+            <canvas id="canvas" width="640" height="480"></canvas>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editStaffIndex = localStorage.getItem('editStaffIndex');
+            const editStaff = JSON.parse(localStorage.getItem('editStaff'));
+            const memberForm = document.getElementById('member-form');
+
+            if (editStaff) {
+                document.getElementById('member-name').value = editStaff.name;
+                document.getElementById('birth-date').value = editStaff.birthDate;
+                document.getElementById('address').value = editStaff.address;
+                document.getElementById('gender').value = editStaff.gender;
+                document.getElementById('expertise').value = editStaff.expertise;
+                document.getElementById('role').value = editStaff.role;
+                if (editStaff.photo) {
+                    document.getElementById('photo-preview').src = editStaff.photo;
+                    document.getElementById('photo-preview').style.display = 'block';
+                }
+            }
+
+            memberForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const member = {
+                    name: document.getElementById('member-name').value,
+                    birthDate: document.getElementById('birth-date').value,
+                    address: document.getElementById('address').value,
+                    gender: document.getElementById('gender').value,
+                    expertise: document.getElementById('expertise').value,
+                    role: document.getElementById('role').value,
+                    photo: document.getElementById('photo-data').value
+                };
+
+                let staff = JSON.parse(localStorage.getItem('staff')) || [];
+                if (editStaffIndex !== null) {
+                    staff[editStaffIndex] = member;
+                } else {
+                    staff.push(member);
+                }
+                localStorage.setItem('staff', JSON.stringify(staff));
+                localStorage.removeItem('editStaffIndex');
+                localStorage.removeItem('editStaff');
+
+                let members = JSON.parse(localStorage.getItem('members')) || [];
+                members.push(member.name);
+                localStorage.setItem('members', JSON.stringify(members));
+
+                window.location.href = '{% url 'project_profile' %}';
+            });
+        });
+
+        function showPhotoUploadPopup() {
+            document.getElementById('photo-upload-popup').style.display = 'flex';
+        }
+
+        function closePhotoUploadPopup() {
+            document.getElementById('photo-upload-popup').style.display = 'none';
+        }
+
+        function startVideo() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.style.display = 'block';
+                    video.srcObject = stream;
+
+                    const captureButton = document.createElement('button');
+                    captureButton.textContent = 'Ambil Foto';
+                    captureButton.onclick = function() {
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const dataURL = canvas.toDataURL('image/png');
+                        document.getElementById('photo-data').value = dataURL;
+                        document.getElementById('photo-preview').src = dataURL;
+                        document.getElementById('photo-preview').style.display = 'block';
+                        video.srcObject.getTracks().forEach(track => track.stop());
+                        closePhotoUploadPopup();
+                    };
+                    document.querySelector('.popup-content').appendChild(captureButton);
+                })
+                .catch(function(err) {
+                    console.error('Error accessing webcam: ' + err);
+                });
+        }
+
+        function browseFile() {
+            const fileInput = document.getElementById('file-input');
+            fileInput.style.display = 'block';
+            fileInput.click();
+            fileInput.onchange = function() {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('photo-data').value = e.target.result;
+                    document.getElementById('photo-preview').src = e.target.result;
+                    document.getElementById('photo-preview').style.display = 'block';
+                    closePhotoUploadPopup();
+                };
+                reader.readAsDataURL(file);
+            };
+        }
+    </script>
+</body>
+</html>

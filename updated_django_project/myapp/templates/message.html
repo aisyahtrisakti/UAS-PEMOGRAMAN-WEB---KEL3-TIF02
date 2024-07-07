@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            position: fixed;
+            background-color: #2c3e50;
+            color: white;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 15px;
+            text-decoration: none;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .sidebar a:hover {
+            background-color: #34495e;
+        }
+        .sidebar a.active {
+            background-color: #8e44ad;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        .header {
+            background-color: #8e44ad;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .tabs button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            cursor: pointer;
+            background-color: #ddd;
+            color: #333;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+        .tabs button.active {
+            background-color: #8e44ad;
+            color: white;
+        }
+        .project-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .project-list li {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .project-list li button {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .send {
+            background-color: #28a745;
+            color: white;
+        }
+        .confirm {
+            background-color: #ffc107;
+            color: white;
+        }
+        .details-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .details-popup .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: left;
+            max-width: 600px;
+            width: 100%;
+        }
+        .details-popup .popup-content h3 {
+            margin-top: 0;
+        }
+        .details-popup .popup-content p {
+            margin: 10px 0;
+        }
+        .details-popup .popup-content button {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #8e44ad;
+            color: white;
+        }
+        @media screen and (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .content {
+                margin-left: 0;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .tabs button {
+                margin-bottom: 10px;
+                flex: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'proyek' %}">Proyek</a>
+        <a href="{% url 'official' %}">Official</a>
+        <a href="{% url 'message' %}" class="active">Message</a>
+        <a href="#">Settings</a>
+    </div>
+    <div class="content">
+        <div class="header">
+            <h1>Message</h1>
+        </div>
+        <div class="tabs">
+            <button id="goToIE" class="active" onclick="showSection('IE')">Go to IE</button>
+            <button id="goToIC" onclick="showSection('IC')">Go to IC</button>
+            <button id="goToIMP" onclick="showSection('IMP')">Go to IMP</button>
+        </div>
+        <ul id="projectList" class="project-list">
+            <!-- Dynamic project items will be appended here -->
+        </ul>
+    </div>
+    <div id="detailsPopup" class="details-popup">
+        <div class="popup-content">
+            <h3>Project Details</h3>
+            <p id="projectName"></p>
+            <p id="projectGoal"></p>
+            <p id="projectStartDate"></p>
+            <p id="projectEndDate"></p>
+            <p id="projectSupervisor"></p>
+            <p id="projectMembers"></p>
+            <p id="projectStatus"></p>
+            <p id="projectNotes"></p>
+            <button onclick="closeDetailsPopup()">Close</button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+
+            function renderProjects(section) {
+                const projectList = document.getElementById('projectList');
+                projectList.innerHTML = '';
+                projects.forEach((project, index) => {
+                    const li = document.createElement('li');
+                    let buttonHTML = '';
+                    if (section === 'IE') {
+                        if (!project.ieSent) {
+                            buttonHTML = `<button class="send" onclick="handleAction('send', ${index})">Send</button>`;
+                        } else {
+                            buttonHTML = `<button class="confirm" onclick="handleAction('confirm', ${index})">Confirm</button>`;
+                        }
+                    } else if (section === 'IC') {
+                        buttonHTML = `<button class="confirm" onclick="handleAction('confirm', ${index})">Confirm</button>`;
+                    } else if (section === 'IMP') {
+                        if (!project.impSent) {
+                            buttonHTML = `<button class="send" onclick="handleAction('send', ${index})">Send</button>`;
+                        } else {
+                            buttonHTML = `<button class="confirm" onclick="handleAction('confirm', ${index})">Confirm</button>`;
+                        }
+                    }
+                    li.innerHTML = `
+                        <span>${project.name}</span>
+                        ${buttonHTML}
+                    `;
+                    li.onclick = function() {
+                        showProjectDetails(project);
+                    };
+                    projectList.appendChild(li);
+                });
+            }
+
+            window.showSection = function(section) {
+                document.getElementById('goToIE').classList.remove('active');
+                document.getElementById('goToIC').classList.remove('active');
+                document.getElementById('goToIMP').classList.remove('active');
+                document.getElementById(`goTo${section}`).classList.add('active');
+                renderProjects(section);
+            }
+
+            window.handleAction = async function(action, index) {
+                const project = projects[index];
+                const url = getAPIUrl(action, project);
+                try {
+                    const response = await fetch(url, {
+                        method: action === 'confirm' ? 'GET' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: action === 'confirm' ? null : JSON.stringify({ project })
+                    });
+                    const data = await response.json();
+                    alert(`Response from ${action}: ${JSON.stringify(data)}`);
+                    if (action === 'send' && document.getElementById('goToIE').classList.contains('active')) {
+                        project.ieSent = true;
+                    } else if (action === 'send' && document.getElementById('goToIMP').classList.contains('active')) {
+                        project.impSent = true;
+                    }
+                    localStorage.setItem('projects', JSON.stringify(projects));
+                    renderProjects(document.querySelector('.tabs button.active').id.replace('goTo', ''));
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            function getAPIUrl(action, project) {
+                switch (action) {
+                    case 'send':
+                        if (document.getElementById('goToIE').classList.contains('active')) {
+                            return '/api/setproject';
+                        } else if (document.getElementById('goToIMP').classList.contains('active')) {
+                            return '/api/setreadyproject';
+                        }
+                        break;
+                    case 'confirm':
+                        if (document.getElementById('goToIE').classList.contains('active')) {
+                            return '/api/statuscompletion/ie';
+                        } else if (document.getElementById('goToIC').classList.contains('active')) {
+                            return '/api/statuscompletion/ic';
+                        } else if (document.getElementById('goToIMP').classList.contains('active')) {
+                            return '/api/statuscompletion/imp';
+                        }
+                        break;
+                    default:
+                        return '';
+                }
+            }
+
+            function showProjectDetails(project) {
+                document.getElementById('projectName').innerText = `Name: ${project.name}`;
+                document.getElementById('projectGoal').innerText = `Tujuan: ${project.goal || 'undefined'}`;
+                document.getElementById('projectStartDate').innerText = `Start Date: ${project.startDate}`;
+                document.getElementById('projectEndDate').innerText = `End Date: ${project.endDate}`;
+                document.getElementById('projectSupervisor').innerText = `Supervisor: ${project.supervisor || 'undefined'}`;
+                document.getElementById('projectMembers').innerText = `Anggota: ${project.members ? project.members.join(', ') : 'undefined'}`;
+                document.getElementById('projectStatus').innerText = `Status Proyek: ${project.status || 'undefined'}`;
+                document.getElementById('projectNotes').innerText = `Catatan Akhir: ${project.notes || 'undefined'}`;
+                document.getElementById('detailsPopup').style.display = 'flex';
+            }
+
+            window.closeDetailsPopup = function() {
+                document.getElementById('detailsPopup').style.display = 'none';
+            }
+
+            renderProjects('IE');
+
+            // New function to handle sending project details via "Send" button
+            function sendProjectDetails(project) {
+                const message = `
+                    Nama Project: ${project.name}\n
+                    Tujuan: ${project.goal || 'undefined'}\n
+                    Start Date: ${project.startDate}\n
+                    End Date: ${project.endDate}\n
+                    Supervisor: ${project.supervisor || 'undefined'}\n
+                    Anggota: ${project.members ? project.members.join(', ') : 'undefined'}\n
+                    Status Proyek: ${project.status || 'undefined'}\n
+                    Catatan Akhir: ${project.notes || 'undefined'}
+                `;
+                alert(`Sending project details:\n\n${message}`);
+                // Implement the actual send logic here, e.g., via AJAX or form submission
+            }
+
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('send')) {
+                    const activeProject = projects.find(p => p.name === e.target.parentElement.querySelector('span').innerText);
+                    if (activeProject) {
+                        sendProjectDetails(activeProject);
+                    } else {
+                        alert('No project selected to send.');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
